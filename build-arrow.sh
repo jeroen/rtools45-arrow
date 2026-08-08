@@ -192,11 +192,13 @@ int main() {
   return 0;
 }
 EOF
-  # pkg-config is a native Windows binary, so it needs a Windows-style path
-  # (msys2 only auto-converts PATH itself, not PKG_CONFIG_PATH)
-  export PKG_CONFIG_PATH="$(cygpath -am "$DIST/lib/pkgconfig")"
+  # PKG_CONFIG_PATH is not auto-converted by msys2 and the list separator
+  # of the rtools pkg-config does not match its path syntax, so neither a
+  # posix nor a windows-style absolute path works. A relative path parses
+  # the same under every convention, so run from inside the directory.
+  echo "== pkg-config: $(command -v pkg-config) ($(pkg-config --version))"
   # capture in an assignment so a pkg-config failure aborts under set -e
-  PKGFLAGS=$(pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
+  PKGFLAGS=$(cd "$DIST/lib/pkgconfig" && PKG_CONFIG_PATH=. pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
   set -x
   # arrow 25 headers use std::span etc, so consumers must compile as C++20
   $CXX "$ROOT/build/linktest.cpp" -o "$ROOT/build/linktest.exe" \
