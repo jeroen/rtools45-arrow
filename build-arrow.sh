@@ -192,12 +192,15 @@ int main() {
   return 0;
 }
 EOF
-  export PKG_CONFIG_PATH="$DIST/lib/pkgconfig"
+  # pkg-config is a native Windows binary, so it needs a Windows-style path
+  # (msys2 only auto-converts PATH itself, not PKG_CONFIG_PATH)
+  export PKG_CONFIG_PATH="$(cygpath -am "$DIST/lib/pkgconfig")"
+  # capture in an assignment so a pkg-config failure aborts under set -e
+  PKGFLAGS=$(pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
   set -x
   # arrow 25 headers use std::span etc, so consumers must compile as C++20
   $CXX "$ROOT/build/linktest.cpp" -o "$ROOT/build/linktest.exe" \
-    -std=c++20 -DARROW_STATIC -DPARQUET_STATIC \
-    $(pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
+    -std=c++20 -DARROW_STATIC -DPARQUET_STATIC $PKGFLAGS
   timeout -k 15 300 "$ROOT/build/linktest.exe"
   set +x
 fi
