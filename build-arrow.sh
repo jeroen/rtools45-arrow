@@ -199,8 +199,9 @@ int main() {
 }
 EOF
   export PKG_CONFIG_PATH="$TOOLCHAIN/lib/pkgconfig"
+  # arrow 25 headers use std::span etc, so consumers must compile as C++20
   $CXX "$ROOT/build/linktest.cpp" -o "$ROOT/build/linktest.exe" \
-    -DARROW_STATIC -DPARQUET_STATIC \
+    -std=c++20 -DARROW_STATIC -DPARQUET_STATIC \
     $(pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
   "$ROOT/build/linktest.exe"
 fi

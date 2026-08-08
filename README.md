@@ -57,6 +57,9 @@ the compile/link/run smoke test at the end.
   llvm/clang-based (llvm-mingw). The script picks the compiler accordingly.
 - `bcrypt-compat.h` is force-included to provide BCrypt algorithm
   pseudo-handles on older mingw-w64 headers; it is a no-op on current ones.
+- The arrow 25 public headers require C++20 (`std::span`, `std::bit_width`),
+  so consuming code must be compiled with `-std=c++20` (for an R package
+  that means `CXX_STD = CXX20` in Makevars).
 - `arrow/util/chrono_internal.h` is patched to keep using the vendored date
   library on gcc < 15: the gcc 14.3 libstdc++ in rtools45 advertises C++20
   chrono (`__cpp_lib_chrono >= 201907L`) but its
