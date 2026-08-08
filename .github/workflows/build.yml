@@ -1,0 +1,69 @@
+name: Build libarrow with Rtools45
+
+on:
+  push:
+  workflow_dispatch:
+    inputs:
+      arrow_version:
+        description: 'Apache Arrow version'
+        default: '25.0.0'
+        required: false
+
+jobs:
+  build:
+    name: ${{ matrix.arch }}
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 360
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: windows-latest
+            arch: x86_64
+            installer: rtools45-6768-6492.exe
+            root: C:\rtools45
+          - os: windows-11-arm
+            arch: aarch64
+            installer: rtools45-aarch64-6768-6492.exe
+            root: C:\rtools45-aarch64
+    env:
+      ARROW_VERSION: ${{ github.event.inputs.arrow_version || '25.0.0' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Rtools45
+        shell: pwsh
+        run: |
+          curl.exe -fsSL --retry 3 -o "$env:TEMP\rtools-installer.exe" `
+            "https://cran.r-project.org/bin/windows/Rtools/rtools45/files/${{ matrix.installer }}"
+          Start-Process -Wait -FilePath "$env:TEMP\rtools-installer.exe" `
+            -ArgumentList '/VERYSILENT','/SUPPRESSMSGBOXES','/NORESTART'
+          Remove-Item "$env:TEMP\rtools-installer.exe"
+
+      - name: Build libarrow
+        shell: pwsh
+        env:
+          # keep the invoking directory when starting a login shell
+          CHERE_INVOKING: 'yes'
+          # make the Windows PATH (runner cmake fallback etc) visible in msys2
+          MSYS2_PATH_TYPE: inherit
+        run: |
+          & "${{ matrix.root }}\usr\bin\bash.exe" -l build-arrow.sh
+          exit $LASTEXITCODE
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: libarrow-${{ matrix.arch }}
+          path: libarrow-*.tar.gz
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs-${{ matrix.arch }}
+          if-no-files-found: ignore
+          path: |
+            build/CMakeFiles/CMakeConfigureLog.yaml
+            build/CMakeFiles/CMakeError.log
+            build/CMakeFiles/CMakeOutput.log
