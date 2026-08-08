@@ -57,6 +57,11 @@ the compile/link/run smoke test at the end.
   llvm/clang-based (llvm-mingw). The script picks the compiler accordingly.
 - `bcrypt-compat.h` is force-included to provide BCrypt algorithm
   pseudo-handles on older mingw-w64 headers; it is a no-op on current ones.
+- `arrow/util/chrono_internal.h` is patched to keep using the vendored date
+  library on gcc < 15: the gcc 14.3 libstdc++ in rtools45 advertises C++20
+  chrono (`__cpp_lib_chrono >= 201907L`) but its
+  `std::formatter<std::chrono::zoned_time<days,...>>` is broken, which breaks
+  compilation of arrow's temporal compute kernels.
 - The bundled xsimd is bumped to 14.3.0 (the 14.2.0 pinned by arrow 25.0.0
   includes the MSVC-only `<arm64_neon.h>` on Windows aarch64).
 - The `.pc` files in the artifact have their prefix rewritten to the rtools

@@ -68,6 +68,16 @@ if [ ! -d "$SRCDIR" ]; then
   tar xf "$ROOT/src/$TARBALL" -C "$ROOT/src"
 fi
 
+# gcc 14 libstdc++ (rtools45 x86_64) defines __cpp_lib_chrono >= 201907L but
+# its std::formatter<std::chrono::zoned_time<days,...>> is broken, so arrow's
+# temporal kernels fail to compile. Only use std::chrono on gcc >= 15 (msys2
+# builds work there); older gcc falls back to the vendored date library.
+# Clang/libc++ (rtools45-aarch64) never takes the std::chrono path anyway.
+CHRONO_H="$SRCDIR/cpp/src/arrow/util/chrono_internal.h"
+if grep -q '^#if defined(_WIN32) && defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L$' "$CHRONO_H"; then
+  sed -i 's/^#if defined(_WIN32) && defined(__cpp_lib_chrono) && __cpp_lib_chrono >= 201907L$/#if defined(_WIN32) \&\& defined(__cpp_lib_chrono) \&\& __cpp_lib_chrono >= 201907L \&\& (defined(__clang__) || !defined(__GNUC__) || __GNUC__ >= 15)/' "$CHRONO_H"
+fi
+
 # xsimd 14.2.0 includes the MSVC-only <arm64_neon.h> on Windows aarch64,
 # which mingw-w64 toolchains don't provide. Fixed upstream in xsimd 14.3.0.
 if grep -q '^ARROW_XSIMD_BUILD_VERSION=14\.2\.0' "$SRCDIR/cpp/thirdparty/versions.txt"; then
