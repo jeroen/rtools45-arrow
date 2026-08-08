@@ -30,7 +30,8 @@ reasons as in the PKGBUILD. The bundled pieces are merged into
 `.github/workflows/build.yml` runs on `windows-latest` (x86_64) and
 `windows-11-arm` (aarch64, free for public repos only). Each job:
 
-1. Downloads the Rtools45 installer from CRAN and installs it silently.
+1. Installs Rtools45 (and R) via `r-lib/actions/setup-r` with
+   `rtools-version: '45'`, which picks the right installer per architecture.
 2. Runs `build-arrow.sh` inside the rtools msys2 bash (login shell with
    `CHERE_INVOKING=yes` and `MSYS2_PATH_TYPE=inherit`).
 3. Uploads `libarrow-<version>-rtools45-<arch>.tar.gz` as an artifact.
@@ -62,6 +63,6 @@ the compile/link/run smoke test at the end.
   toolchain mount (`/x86_64-w64-mingw32.static.posix` or
   `/aarch64-w64-mingw32.static.posix`), so the tarball can be extracted
   straight into the toolchain, or used standalone via `ARROW_HOME`.
-- The rtools installer filenames in the workflow (`rtools45-6768-6492.exe`)
-  are pinned; CRAN removes old builds when rtools is updated, so bump these
-  when the workflow's download step starts failing.
+- Rtools is installed from the r-hub `rtools45` "latest" GitHub release (via
+  `r-lib/actions/setup-r`), so the workflow does not need updating when CRAN
+  rotates installer builds.
