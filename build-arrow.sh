@@ -174,6 +174,11 @@ cmake -S "$SRCDIR/cpp" -B "$ROOT/build" \
 cmake --build "$ROOT/build" -j "$(nproc)"
 cmake --install "$ROOT/build"
 
+# The vendored date library (used since we patch out std::chrono on gcc < 15,
+# and always used by clang/libc++) calls CoTaskMemFree from ole32, which the
+# generated arrow.pc does not declare for static linking.
+sed -i 's/^Libs.private:.*/& -lole32/' "$DIST/lib/pkgconfig/arrow.pc"
+
 #--- Smoke test: compile, link and run a small program ----------------------
 # Runs against the dist tree before the .pc prefix rewrite below, so no
 # files need to be copied into the toolchain.
