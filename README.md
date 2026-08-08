@@ -71,6 +71,10 @@ the compile/link/run smoke test at the end.
   toolchain mount (`/x86_64-w64-mingw32.static.posix` or
   `/aarch64-w64-mingw32.static.posix`), so the tarball can be extracted
   straight into the toolchain, or used standalone via `ARROW_HOME`.
+- The `pkg-config` shipped in the rtools toolchain is an MXE wrapper script
+  that overrides `PKG_CONFIG_PATH`; to add a search directory you must set
+  `PKG_CONFIG_PATH_x86_64_w64_mingw32_static_posix` (resp.
+  `PKG_CONFIG_PATH_aarch64_w64_mingw32_static_posix`) instead.
 - Rtools is installed from the r-hub `rtools45` "latest" GitHub release (via
   `r-lib/actions/setup-r`), so the workflow does not need updating when CRAN
   rotates installer builds.

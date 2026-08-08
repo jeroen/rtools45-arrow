@@ -192,13 +192,13 @@ int main() {
   return 0;
 }
 EOF
-  # PKG_CONFIG_PATH is not auto-converted by msys2 and the list separator
-  # of the rtools pkg-config does not match its path syntax, so neither a
-  # posix nor a windows-style absolute path works. A relative path parses
-  # the same under every convention, so run from inside the directory.
+  # The rtools pkg-config is an MXE wrapper script that overrides
+  # PKG_CONFIG_PATH/PKG_CONFIG_LIBDIR; the only extra search path it honors
+  # is the target-specific PKG_CONFIG_PATH_<triplet> variable.
   echo "== pkg-config: $(command -v pkg-config) ($(pkg-config --version))"
+  export "PKG_CONFIG_PATH_$(basename "$TOOLCHAIN" | tr '.-' '__')=$DIST/lib/pkgconfig"
   # capture in an assignment so a pkg-config failure aborts under set -e
-  PKGFLAGS=$(cd "$DIST/lib/pkgconfig" && PKG_CONFIG_PATH=. pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
+  PKGFLAGS=$(pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
   set -x
   # arrow 25 headers use std::span etc, so consumers must compile as C++20
   $CXX "$ROOT/build/linktest.cpp" -o "$ROOT/build/linktest.exe" \
