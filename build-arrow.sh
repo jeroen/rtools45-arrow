@@ -174,17 +174,11 @@ cmake -S "$SRCDIR/cpp" -B "$ROOT/build" \
 cmake --build "$ROOT/build" -j "$(nproc)"
 cmake --install "$ROOT/build"
 
-#--- Make the installed tree relocatable ------------------------------------
-# Point the pkg-config files at the rtools toolchain prefix, so the artifact
-# can be extracted into the toolchain (or used standalone via ARROW_HOME).
-find "$DIST/lib/pkgconfig" -name '*.pc' -exec sed -i \
-  -e "s|$DIST_WIN|$TOOLCHAIN|g" \
-  -e "s|$PREFIX_WIN|$TOOLCHAIN|g" {} +
-
 #--- Smoke test: compile, link and run a small program ----------------------
+# Runs against the dist tree before the .pc prefix rewrite below, so no
+# files need to be copied into the toolchain.
 if [ "${ARROW_LINK_TEST:-1}" = "1" ]; then
   echo "== Running link test"
-  cp -r "$DIST"/* "$TOOLCHAIN/"
   cat > "$ROOT/build/linktest.cpp" <<'EOF'
 #include <arrow/api.h>
 #include <parquet/arrow/writer.h>
@@ -198,13 +192,22 @@ int main() {
   return 0;
 }
 EOF
-  export PKG_CONFIG_PATH="$TOOLCHAIN/lib/pkgconfig"
+  export PKG_CONFIG_PATH="$DIST/lib/pkgconfig"
+  set -x
   # arrow 25 headers use std::span etc, so consumers must compile as C++20
   $CXX "$ROOT/build/linktest.cpp" -o "$ROOT/build/linktest.exe" \
     -std=c++20 -DARROW_STATIC -DPARQUET_STATIC \
     $(pkg-config --cflags --libs --static parquet arrow-dataset arrow-acero)
-  "$ROOT/build/linktest.exe"
+  timeout -k 15 300 "$ROOT/build/linktest.exe"
+  set +x
 fi
+
+#--- Make the installed tree relocatable ------------------------------------
+# Point the pkg-config files at the rtools toolchain prefix, so the artifact
+# can be extracted into the toolchain (or used standalone via ARROW_HOME).
+find "$DIST/lib/pkgconfig" -name '*.pc' -exec sed -i \
+  -e "s|$DIST_WIN|$TOOLCHAIN|g" \
+  -e "s|$PREFIX_WIN|$TOOLCHAIN|g" {} +
 
 #--- Package -----------------------------------------------------------------
 OUTPUT="$ROOT/libarrow-$ARROW_VERSION-rtools45-$ARCH.tar.gz"
